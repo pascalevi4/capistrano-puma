@@ -79,6 +79,25 @@ namespace :puma do
     end
   end
 
+  desc 'Reload Puma service via systemd'
+  task :reload do
+    on roles(fetch(:puma_role)) do
+      service_ok = if fetch(:puma_systemctl_user) == :system
+        sudo "#{fetch(:puma_systemctl_bin)} status #{fetch(:puma_service_unit_name)} > /dev/null"
+      else
+        execute "#{fetch(:puma_systemctl_bin)}", "--user", "status", fetch(:puma_service_unit_name)
+      end
+
+      cmd = service_ok ? 'reload' : 'restart'
+
+      if fetch(:puma_systemctl_user) == :system
+        sudo "#{fetch(:puma_systemctl_bin)}  #{cmd} #{fetch(:puma_service_unit_name)}"
+      else
+        execute "#{fetch(:puma_systemctl_bin)}", "--user", cmd, fetch(:puma_service_unit_name)
+      end
+    end
+  end
+
   desc 'Get Puma service status via systemd'
   task :status do
     on roles(fetch(:puma_role)) do
